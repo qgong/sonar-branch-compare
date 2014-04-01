@@ -1,0 +1,61 @@
+<% content_for :style do %>
+<style>
+td {
+  border: 1px solid;
+}
+.container {
+}
+.project {
+  float: left;
+  display: table;
+}
+.metric_name {
+  float: left;
+  clear: both;
+  width: 100%;
+  height: 2em;
+  padding-top: 0.5em;
+  vertical-align: bottom;
+  display: table-cell;
+}
+.item {
+  float: left;
+  clear: both;
+  width: 100%;
+  height: 2em;
+  padding-top: 0.5em;
+  text-align: center;
+  vertical-align: bottom;
+  display: table-cell;
+}
+.background1 {
+  background-color: #0099FF;
+}
+.background2 {
+  background-color: #0066FF;
+}
+</style>
+<% end %>
+
+<div class='container'>
+  <!--display metric names-->
+  <div class="project">
+    <div class="metric_name background1"></div>
+    <%= color_flag = true -%>
+    <% @metrics.each do |metric| %>
+    <div class="metric_name <%= color_flag ? "background1" : background2 %>">
+      <%= metric.name %>
+    </div>
+    <%= color_flag = (not color_flag) -%>
+    <% end %>
+  </div>
+  <!--base project-->
+  <div class="project">
+    <div class="item"><%= @base_project[:name] %></div>
+    <% @metrics.each do |metric| %>
+      <div class="item">
+      <%= format_measure @base_project[:snapshots][@base_project[:versions][0]].measure(metric) -%>
+      </div>
+    <% end %>
+  </div>
+</div>
