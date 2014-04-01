@@ -17,6 +17,7 @@ td {
   padding-top: 0.5em;
   vertical-align: bottom;
   display: table-cell;
+  padding-left: 2%;
 }
 .item {
   float: left;
@@ -27,12 +28,13 @@ td {
   text-align: center;
   vertical-align: bottom;
   display: table-cell;
+  padding-left: 2%;
 }
 .background1 {
-  background-color: #0099FF;
+  background-color: #00CCFF;
 }
 .background2 {
-  background-color: #0066FF;
+  background-color: #0099FF;
 }
 </style>
 <% end %>
@@ -41,21 +43,23 @@ td {
   <!--display metric names-->
   <div class="project">
     <div class="metric_name background1"></div>
-    <%= color_flag = true -%>
+    <% color_flag = false %>
     <% @metrics.each do |metric| %>
-    <div class="metric_name <%= color_flag ? "background1" : background2 %>">
+      <div class="metric_name <%= color_flag ? "background1" : "background2" %>">
       <%= metric.name %>
-    </div>
-    <%= color_flag = (not color_flag) -%>
+      </div>
+      <% color_flag = (not color_flag) %>
     <% end %>
   </div>
   <!--base project-->
   <div class="project">
-    <div class="item"><%= @base_project[:name] %></div>
+    <div class="item background1"><%= @base_project[:name] %></div>
+    <% color_flag = false %>
     <% @metrics.each do |metric| %>
-      <div class="item">
+      <div class="item <%= color_flag ? "background1" : "background2" %>">
       <%= format_measure @base_project[:snapshots][@base_project[:versions][0]].measure(metric) -%>
       </div>
+      <% color_flag = (not color_flag) %>
     <% end %>
   </div>
 </div>
