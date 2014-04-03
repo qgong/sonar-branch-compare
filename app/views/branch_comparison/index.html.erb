@@ -1,65 +1,119 @@
 <% content_for :style do %>
 <style>
-td {
-  border: 1px solid;
+div {
+    border: 1px solid;
 }
-.container {
+.base_project {
+    float: left;
+    height: 100%;
+    display: table;
 }
-.project {
-  float: left;
-  display: table;
+.base_project .name {
+    clear: both;
+    display: table-cell;
 }
-.metric_name {
-  float: left;
-  clear: both;
-  width: 100%;
-  height: 2em;
-  padding-top: 0.5em;
-  vertical-align: bottom;
-  display: table-cell;
-  padding-left: 2%;
+.base_project .data_container {
 }
-.item {
-  float: left;
-  clear: both;
-  width: 100%;
-  height: 2em;
-  padding-top: 0.5em;
-  text-align: center;
-  vertical-align: bottom;
-  display: table-cell;
-  padding-left: 2%;
+.base_project .data {
 }
-.background1 {
-  background-color: #00CCFF;
+
+.target_project {
+    float: left;
+    height: 100%;
+    display: table;
 }
-.background2 {
-  background-color: #0099FF;
+.target_project .name {
+    clear: both;
+    display: table-cell;
+}
+.target_project .data {
 }
 </style>
 <% end %>
 
-<div class='container'>
-  <!--display metric names-->
-  <div class="project">
-    <div class="metric_name background1"></div>
-    <% color_flag = false %>
-    <% @metrics.each do |metric| %>
-      <div class="metric_name <%= color_flag ? "background1" : "background2" %>">
-      <%= metric.name %>
-      </div>
-      <% color_flag = (not color_flag) %>
-    <% end %>
-  </div>
-  <!--base project-->
-  <div class="project">
-    <div class="item background1"><%= @base_project[:name] %></div>
-    <% color_flag = false %>
-    <% @metrics.each do |metric| %>
-      <div class="item <%= color_flag ? "background1" : "background2" %>">
-      <%= format_measure @base_project[:snapshots][@base_project[:versions][0]].measure(metric) -%>
-      </div>
-      <% color_flag = (not color_flag) %>
-    <% end %>
-  </div>
+<% content_for :script do %>
+<script type="text/javascript">
+// global variables
+var BASE_PROJECT;
+var METRICS = JSON.parse('<%= j JSON.dump(@metrics.map {|metric| metric.id}) %>');
+
+function ajax_request(method, path, callback, data)
+{
+    var http;
+    if (window.XMLHttpRequest) {
+        // code for IE7+, Firefox, Chrome, Opera, Safari
+        http = new XMLHttpRequest();
+    } else {
+        // code for IE6, IE5
+        http = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+    http.onreadystatechange = function()
+    {
+        callback(http);
+    }
+    http.open(method, path, true);
+    if (method == "POST") {
+        http.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        http.setRequestHeader("Content-length", data.length);
+        http.send(data);
+    } else {
+        http.send()
+    }
+}
+
+function load_project(project_id, version)
+{
+    callback = function(http)
+    {
+        if (http.readyState==4 && http.status==200) {
+            // parse json data
+            var jsonObj = JSON.parse(http.responseText);
+            // project name
+            var projectNameXPath = "//*[@id='project" + project_id + "']//*[@id='name']";
+            document.evaluate(projectNameXPath,
+                            document, null, 9, null).singleNodeValue.innerHTML = jsonObj['name'];
+            // project measurement data
+            /*for (var metric in metrics) {
+                var value = jsonObj.data[metric];
+                var dataContainer = document.evaluate("xpath=//*[@id='" + project_id + "']//*[@id='data_container']",
+                                                    document, null, 9, null).singleNodeValue;
+            }*/
+        }
+    }
+    ajax_request('POST',
+                '../get_project',
+                callback,
+                "project_id=" + project_id + "&version=" + version + "&metrics=" + METRICS.join(','));
+}
+
+function load_all_projects()
+{
+    // load base project
+    load_project(<%= j @base_project[:id] %>, '<%= j @base_project[:versions][0] %>');
+    // load target projects
+    var projects = JSON.parse('<%= JSON.dump(@target_projects.map {|project| [project[:id], project[:versions][0]]}) %>');
+    for (var i = 0; i < projects.length; ++i) {
+        var id = projects[i][0];
+        var version = projects[i][1];
+        load_project(id, version);
+    }
+}
+
+window.onload = load_all_projects;
+</script>
+<% end %>
+
+<div id="project<%= @base_project[:id] %>" class="base_project">
+    <div id="name" class="name">
+    </div>
+    <div id="data_container" class="data_container">
+    </div>
 </div>
+<% @target_projects.each do |project| %>
+<div id="project<%= project[:id] %>" class="target_project">
+    <div id="name" class="name">
+    </div>
+    <div id="data_container" class="data_container">
+    </div>
+</div>
+<% end %>
