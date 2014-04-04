@@ -1,8 +1,10 @@
 #!/usr/bin/env ruby 
+require 'set'
 require 'json'
 
 class BranchComparisonController < ApplicationController
   def index
+    begin
     # make sure id/key is specified
     unless params[:id]
       render :text => 'Usage: /branch_comparison/<base_branch_id_or_key>?target_branches=<branch1>,<branch2>'
@@ -19,54 +21,41 @@ class BranchComparisonController < ApplicationController
       target_branch_names = nil
     end
     # find base project
-    base_branch = Project.by_key(params[:id])
-    if base_branch == nil
+    @base_project = Project.by_key(params[:id])
+    if @base_project == nil
       render :text => "Project #{params[:id]} doesn't exist"
       return
     end
-    begin
+
     # find other branches
-    target_branches = self._get_branches(base_branch.key, target_branch_names)
-    # find snapshots
-    @target_projects = []
-    [base_branch].concat(target_branches).each do |project|
-      data = {:id => project.id,
-              :name => project.name(true),
-              :key => project.key,
-              :snapshots => self._get_latest_snapshot(project.id)}
-      data[:versions] = data[:snapshots].keys.sort do |a, b|
-        a.to_f <=> b.to_f
-      end.reverse
-      @target_projects.push(data)
-    end
+    @target_projects = self._get_branches(@base_project.key, target_branch_names)
     # find enabled metrics
     @metrics = Metric.all.select {|metric| metric.enabled}
-    # remove metrics with no values
-    @metrics = @metrics.select do |metric|
-      result = false
-      @target_projects.each do |data|
-        data[:snapshots].each_pair do |version, snapshot|
-          value = snapshot.measure(metric)
-          if value.is_a?(String) and not value.empty?
-            result = true
-            break
-          elsif not value.nil?
-            result = true
-            break
-          end
-        end
-        break if result
-      end
-      result
-    end
-    @base_project = @target_projects.delete_at(0)
     @metrics.sort! {|a, b| a.name <=> b.name}
-
-    #render :json => @base_project
+    # find all available versions for each project
+    @versions = {}
+    [@base_project].concat(@target_projects).map {|project| project.id}.each do |id|
+      @versions[id] = self._get_project_versions(id)
+    end
+    if @versions[@base_project.id].empty?
+      render :text => "Base project #{@base_project.id} has no snapshots"
+      return
+    end
+    @base_project_measure_data = self._get_measure_data(@base_project,
+                                                        @versions[@base_project.id][0],
+                                                        @metrics)
 
     rescue => e
-      render :text => e
+      render :text => e.backtrace.join("\n")
     end
+  end
+
+  def _get_project_versions(id)
+    snapshots = Snapshot.all(:conditions => ['project_id = ?', id.to_i])
+    versions = snapshots.map {|snapshot| snapshot.version}
+    versions = Set.new(versions).to_a
+    versions = versions.sort {|a, b| a.to_f <=> b.to_f}.reverse
+    return versions
   end
 
   # get the other branches of a project
@@ -91,34 +80,40 @@ class BranchComparisonController < ApplicationController
   # get latest snapshot of a specific version
   def _get_latest_snapshot(project_id, version)
     snapshot = Snapshot.first(:conditions => ['project_id = ? AND version = ?',
-                                              project_id, version],
+                                              project_id.to_i, version],
                               :order => 'created_at DESC')
     return snapshot
   end
 
-  def get_project
-    # search for project
-    project = Project.by_key(params['project_id'].to_i)
-    if project.nil?
-      render :json => {'status' => false,
-                      'error' => "Project #{params['project_id']} not found"}
+  def _get_measure_data(project, version, metrics)
+    # find snapshot
+    snapshot = self._get_latest_snapshot(project.id, version)
+    if snapshot.nil?
+      render :json => nil
       return
     end
-    # find snapshot
-    snapshot = self._get_latest_snapshot(params['project_id'].to_i, params['version'])
     # calculate result for each metric
-    json = {'name' => project.name(true), 'metrics' => {},
-            'status' => true}
-    params['metrics'].each do |metric_id|
-      metric = Metric.by_id(metric_id)
-      if metric
-        json['metrics'][metric_id] = snapshot.measure(metric_id)
-      else
-        render :json => {'status' => false,
-                        'error' => "Metric #{metric_id} not found"}
-        return
-      end
+    measure_data = {}
+    metrics.each do |metric|
+      measure_data[metric.id] = snapshot.measure(metric)
     end
-    render :json => json
+    data = {'id' => project.id,
+            'name' => project.name(true),
+            'created_at' => snapshot.created_at,
+            'measure_data' => measure_data}
+    return data
+  end
+
+  # params[:id]         project id
+  # params['version']   project version
+  # params['metrics']   metric ids
+  def get_measure_data
+    project = Project.by_key(params[:id])
+    unless project
+      render :json => nil
+    end
+    metrics = params['metrics'].map {|id| Metric.by_id(id)}
+    data = self._get_measure_data(project, params['version'], metrics)
+    render :json => data
   end
 end

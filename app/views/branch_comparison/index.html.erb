@@ -1,20 +1,52 @@
 <% content_for :style do %>
-<style>
+<style type="text/css">
+body {
+    background-color: #E0E0E0;
+}
 div {
-    border: 1px solid;
+}
+.metric {
+    float: left;
+}
+.metric .name {
+    width: 100%;
+    height: 2em;
+    float: left;
+    clear: both;
+    line-height: 2em;
+    text-align: left;
+    padding-left: 0.3em;
+    padding-right: 0.3em;
+    color: #FFFFFF;
+}
+.background1 {
+    background-color: #00CCFF;
+}
+.background2 {
+    background-color: #0099FF;
+}
+.background3 {
+    background-color: #0066FF;
 }
 .base_project {
     float: left;
     height: 100%;
     display: table;
+    font-size: 14px;
 }
 .base_project .name {
     clear: both;
+    float: left;
+    width: 100%;
+    height: 2em;
     display: table-cell;
+    vertical-align: middle;
+    padding-left: 0.3em;
+    padding-right: 0.3em;
 }
-.base_project .data_container {
+.base_project .measure_data_container {
 }
-.base_project .data {
+.base_project .measure_data {
 }
 
 .target_project {
@@ -26,7 +58,7 @@ div {
     clear: both;
     display: table-cell;
 }
-.target_project .data {
+.target_project .measure_data {
 }
 </style>
 <% end %>
@@ -34,10 +66,12 @@ div {
 <% content_for :script do %>
 <script type="text/javascript">
 // global variables
-var BASE_PROJECT;
-var METRICS = JSON.parse('<%= j JSON.dump(@metrics.map {|metric| metric.id}) %>');
+window.base_project_id = <%= j @base_project.id %>;
+window.base_project_measure_data = JSON.parse('<%= j JSON.dump(@base_project_measure_data) %>');
+window.metrics = JSON.parse('<%= j JSON.dump(@metrics.map {|metric| metric.id}) %>');
+window.versions = JSON.parse('<%= j JSON.dump(@versions) %>')
 
-function ajax_request(method, path, callback, data)
+function ajax_request(method, path, data, callback)
 {
     var http;
     if (window.XMLHttpRequest) {
@@ -61,59 +95,96 @@ function ajax_request(method, path, callback, data)
     }
 }
 
-function load_project(project_id, version)
+function remove_all_child(node)
 {
-    callback = function(http)
-    {
+    while (node.firstChild) {
+        node.removeChild(node.firstChild);
+    }
+}
+
+function update_project_node(measure_data)
+{
+    var project_xpath = "//div[@id='project" + measure_data['id'] + "']";
+    // set project name
+    var project_name_xpath = project_xpath + "//div[@id='name']";
+    var project_name_node = document.evaluate(project_name_xpath, document, null, 9, null).singleNodeValue;
+    remove_all_child(project_name_node);
+    project_name_node[0].nodeValue = measure_data['name']
+    // add measure data
+    var project_measure_data_xpath = project_xpath + "//div[@id='measure_data_container']";
+    var project_measure_data_node = document.evaluate(project_measure_data_xpath, document, null, 9, null).singleNodeValue;
+    remove_all_child(project_measure_data_node);
+    for (var metric_id in window.metrics) {
+        var node = document.createElement("div");
+        node.class = "measure_data";
+        node.appendChild(document.createTextNode(measure_data['measure_data'][metric_id]));
+        project_measure_data_node.appendChild(node);
+    }
+}
+
+function create_project_node(measure_data)
+{
+    var project_node = document.createElement("div");
+    // set properties
+    project_node.id = "project" + measure_data['id'];
+    for (var key in properties) {
+        project_node[key] = properties[key];
+    }
+    // append "name" node
+    var name_node = document.createElement("div");
+    name_node.appendChild(document.createTextNode(""));
+    project_node.appendChild(name_node);
+    // append data container
+    var data_container_node = document.createElement("div");
+    data_container_node.id = "measure_data_container";
+    data_container_node.class = "measure_data_container";
+    project_node.appendChild(data_container_node);
+    // add project_node to project container
+    var project_container_xpath = "//div[@id='project_container']";
+    project_container_xpath.appendChild(project_node);
+    // add data
+    update_project_node(measure_data['id'], measure_data);
+    return project_node;
+}
+
+function remove_project_node(project_id)
+{
+    var xpath = "//div[@id='project_container']//div[@id='project" + project_id + "']";
+    var project_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
+    project_node.parentNode.removeChild(project_node);
+    return project_node;
+}
+
+function measure_project(project_id, version, metrics, callback)
+{
+    ajax_callback = function(http) {
         if (http.readyState==4 && http.status==200) {
             // parse json data
-            var jsonObj = JSON.parse(http.responseText);
-            // project name
-            var projectNameXPath = "//*[@id='project" + project_id + "']//*[@id='name']";
-            document.evaluate(projectNameXPath,
-                            document, null, 9, null).singleNodeValue.innerHTML = jsonObj['name'];
-            // project measurement data
-            /*for (var metric in metrics) {
-                var value = jsonObj.data[metric];
-                var dataContainer = document.evaluate("xpath=//*[@id='" + project_id + "']//*[@id='data_container']",
-                                                    document, null, 9, null).singleNodeValue;
-            }*/
+            var measure_data = JSON.parse(http.responseText);
+            if (project_id == window.base_project_id) {
+                window.base_project_measure_data = measure_data;
+            }
+            if (measure_data) {
+                callback(measure_data);
+            } else {
+                alert("Failed to get measure data of project " + project_id);
+            }
         }
     }
-    ajax_request('POST',
-                '../get_project',
-                callback,
-                "project_id=" + project_id + "&version=" + version + "&metrics=" + METRICS.join(','));
+    ajax_request('POST', '../get_measure_data',
+                "project_id=" + project_id + "&version=" + version + "&metrics=" + METRICS.join(','),
+                ajax_callback);
 }
-
-function load_all_projects()
-{
-    // load base project
-    load_project(<%= j @base_project[:id] %>, '<%= j @base_project[:versions][0] %>');
-    // load target projects
-    var projects = JSON.parse('<%= JSON.dump(@target_projects.map {|project| [project[:id], project[:versions][0]]}) %>');
-    for (var i = 0; i < projects.length; ++i) {
-        var id = projects[i][0];
-        var version = projects[i][1];
-        load_project(id, version);
-    }
-}
-
-window.onload = load_all_projects;
 </script>
 <% end %>
 
-<div id="project<%= @base_project[:id] %>" class="base_project">
-    <div id="name" class="name">
-    </div>
-    <div id="data_container" class="data_container">
-    </div>
-</div>
-<% @target_projects.each do |project| %>
-<div id="project<%= project[:id] %>" class="target_project">
-    <div id="name" class="name">
-    </div>
-    <div id="data_container" class="data_container">
+<div id="project_container">
+    <div class="metric">
+        <!--place holder-->
+        <div class="name"></div>
+        <!--metric names-->
+        <% @metrics.each_index do |i| %>
+            <div class="name" style="background-color: <%= (i%2 == 0)? '#282828' : '#484848' %>"><%= @metrics[i].name %></div>
+        <% end %>
     </div>
 </div>
-<% end %>
