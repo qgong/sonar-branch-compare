@@ -3,8 +3,6 @@
 body {
     background-color: #E0E0E0;
 }
-div {
-}
 .metric {
     float: left;
 }
@@ -16,49 +14,94 @@ div {
     line-height: 2em;
     text-align: left;
     padding-left: 0.3em;
-    padding-right: 0.3em;
     color: #FFFFFF;
-}
-.background1 {
-    background-color: #00CCFF;
-}
-.background2 {
-    background-color: #0099FF;
-}
-.background3 {
-    background-color: #0066FF;
 }
 .base_project {
     float: left;
-    height: 100%;
-    display: table;
-    font-size: 14px;
+    box-shadow: 0.5em 0.3em 0.2em #888888;
+    margin-right: 0.8em;
 }
 .base_project .name {
-    clear: both;
-    float: left;
     width: 100%;
     height: 2em;
-    display: table-cell;
-    vertical-align: middle;
+    float: left;
+    clear: both;
+    line-height: 2em;
+    text-align: center;
     padding-left: 0.3em;
-    padding-right: 0.3em;
+    background-color: #484848;
+    color: #FFFFFF;
 }
-.base_project .measure_data_container {
+.base_project .version_container {
+    width: 100%;
+    height: 2em;
+    float: left;
+    clear: both;
+    line-height: 2em;
+    text-align: center;
+    padding-left: 0.3em;
+    background-color: #C8C8C8;
 }
 .base_project .measure_data {
+    width: 100%;
+    height: 2em;
+    float: left;
+    clear: both;
+    line-height: 2em;
+    text-align: center;
+    padding-left: 0.3em;
+}
+.base_project .background1 {
+    background-color: #B8B8B8;
+}
+.base_project .background2 {
+    background-color: #C8C8C8;
 }
 
 .target_project {
     float: left;
-    height: 100%;
-    display: table;
+    box-shadow: 0.5em 0.3em 0.2em #888888;
+    margin-right: 0.8em;
 }
 .target_project .name {
+    width: 100%;
+    height: 2em;
+    float: left;
     clear: both;
-    display: table-cell;
+    line-height: 2em;
+    text-align: center;
+    padding-left: 0.3em;
+    background-color: #484848;
+    color: #FFFFFF;
+}
+.target_project .version_container {
+    width: 100%;
+    height: 2em;
+    float: left;
+    clear: both;
+    line-height: 2em;
+    text-align: center;
+    padding-left: 0.3em;
+    background-color: #C8C8C8;
+}
+.target_project .background1 {
+    background-color: #B8B8B8;
+}
+.target_project .background2 {
+    background-color: #C8C8C8;
 }
 .target_project .measure_data {
+    width: 100%;
+    height: 2em;
+    float: left;
+    clear: both;
+    line-height: 2em;
+    text-align: center;
+    padding-left: 0.3em;
+}
+.versions {
+    width: 6em;
+    text-align: center;
 }
 </style>
 <% end %>
@@ -102,49 +145,88 @@ function remove_all_child(node)
     }
 }
 
-function update_project_node(measure_data)
-{
-    var project_xpath = "//div[@id='project" + measure_data['id'] + "']";
-    // set project name
-    var project_name_xpath = project_xpath + "//div[@id='name']";
-    var project_name_node = document.evaluate(project_name_xpath, document, null, 9, null).singleNodeValue;
-    remove_all_child(project_name_node);
-    project_name_node[0].nodeValue = measure_data['name']
-    // add measure data
-    var project_measure_data_xpath = project_xpath + "//div[@id='measure_data_container']";
-    var project_measure_data_node = document.evaluate(project_measure_data_xpath, document, null, 9, null).singleNodeValue;
-    remove_all_child(project_measure_data_node);
-    for (var metric_id in window.metrics) {
-        var node = document.createElement("div");
-        node.class = "measure_data";
-        node.appendChild(document.createTextNode(measure_data['measure_data'][metric_id]));
-        project_measure_data_node.appendChild(node);
-    }
-}
-
 function create_project_node(measure_data)
 {
     var project_node = document.createElement("div");
     // set properties
-    project_node.id = "project" + measure_data['id'];
-    for (var key in properties) {
-        project_node[key] = properties[key];
+    project_node.setAttribute("id", "project" + measure_data['id']);
+    if (measure_data['id'] == window.base_project_id) {
+        project_node.setAttribute("class", "base_project");
+    } else {
+        project_node.setAttribute("class", "target_project");
     }
     // append "name" node
     var name_node = document.createElement("div");
-    name_node.appendChild(document.createTextNode(""));
+    name_node.setAttribute("class", "name");
+    name_node.appendChild(document.createTextNode(measure_data['name']));
     project_node.appendChild(name_node);
-    // append data container
-    var data_container_node = document.createElement("div");
-    data_container_node.id = "measure_data_container";
-    data_container_node.class = "measure_data_container";
-    project_node.appendChild(data_container_node);
-    // add project_node to project container
-    var project_container_xpath = "//div[@id='project_container']";
-    project_container_xpath.appendChild(project_node);
-    // add data
-    update_project_node(measure_data['id'], measure_data);
+    // append "versions" node
+    var versions_node = document.createElement("div");
+    versions_node.setAttribute("id", "version_container");
+    versions_node.setAttribute("class", "version_container");
+    var select_node = document.createElement("select");
+    select_node.setAttribute("class", "versions");
+    for (var i = 0; i < window.versions[measure_data['id']].length; ++i ) {
+        var version = window.versions[measure_data['id']][i];
+        var option_node = document.createElement("option");
+        option_node.setAttribute("value", version);
+        if (version == measure_data['version']) {
+            option_node.setAttribute("selected", "true");
+        }
+        option_node.appendChild(document.createTextNode(version));
+        select_node.appendChild(option_node);
+    }
+    versions_node.appendChild(select_node);
+    project_node.appendChild(versions_node);
+    // append measure data
+    for (var i = 0; i < window.metrics.length; ++i) {
+        var measure_node = document.createElement("div");
+        measure_node.setAttribute("id", "metric" + window.metrics[i]);
+        var class_attr = "measure_data";
+        if (i % 2 == 0) {
+            class_attr += " background1";
+        } else {
+            class_attr += " background2";
+        }
+        measure_node.setAttribute("class", class_attr);
+        var target_data = measure_data['measure_data'][window.metrics[i]];
+        var text;
+        if (target_data[1]) {
+            text = target_data[0];
+            if (measure_data['id'] != window.base_project_id) {
+                var base_data = window.base_project_measure_data['measure_data'][window.metrics[i]];
+                if (target_data[1] != base_data[1]) {
+                    text += "(";
+                    if (target_data[1] > base_data[1]) {
+                        text += "+";
+                    }
+                    text += target_data[1] - base_data[1]
+                    text += ")";
+                }
+            }
+        } else {
+            alert("No data for metric " + window.metrics[i]);
+            text = "";
+        }
+        measure_node.appendChild(document.createTextNode(text));
+        project_node.appendChild(measure_node);
+    }
     return project_node;
+}
+
+function replace_project_node(project_id, measure_data)
+{
+    var xpath = "//div[@id='project_container']//div[@id='project" + project_id + "']";
+    var project_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
+    var new_node = create_project_node(measure_data);
+    if (new_node) {
+        alert("replacing project " + project_id);
+        project_node.parentNode.replaceChild(new_node, project_node);
+        return true;
+    } else {
+        alert("Failed to create project node for project " + project_id);
+        return false;
+    }
 }
 
 function remove_project_node(project_id)
@@ -155,36 +237,90 @@ function remove_project_node(project_id)
     return project_node;
 }
 
-function measure_project(project_id, version, metrics, callback)
+function measure_project(project_id)
 {
+    var xpath = "//div[@id='project_container']//div[@id='project" + project_id + "']//div[@id='version_container']//select";
+    var select_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
+    var version = select_node.value;
+
     ajax_callback = function(http) {
         if (http.readyState==4 && http.status==200) {
             // parse json data
             var measure_data = JSON.parse(http.responseText);
-            if (project_id == window.base_project_id) {
-                window.base_project_measure_data = measure_data;
-            }
             if (measure_data) {
-                callback(measure_data);
+                if (project_id == window.base_project_id) {
+                    window.base_project_measure_data = measure_data;
+                }
+                replace_project_node(project_id, measure_data);
             } else {
                 alert("Failed to get measure data of project " + project_id);
             }
         }
     }
-    ajax_request('POST', '../get_measure_data',
-                "project_id=" + project_id + "&version=" + version + "&metrics=" + METRICS.join(','),
+    ajax_request('POST', "../get_measure_data/" + project_id,
+                "version=" + version + "&metrics=" + window.metrics.join(','),
                 ajax_callback);
 }
 </script>
 <% end %>
 
 <div id="project_container">
-    <div class="metric">
+    <div id="metric_container" class="metric">
         <!--place holder-->
+        <div class="name"></div>
         <div class="name"></div>
         <!--metric names-->
         <% @metrics.each_index do |i| %>
-            <div class="name" style="background-color: <%= (i%2 == 0)? '#282828' : '#484848' %>"><%= @metrics[i].name %></div>
+        <div id="metric<%= @metrics[i].id %>" class="name" style="background-color: <%= (i%2 == 0)? '#282828' : '#484848' %>">
+            <%= @metrics[i].name %>
+        </div>
         <% end %>
     </div>
+    <div id="project<%= @base_project.id %>" class="base_project">
+        <div class="name">
+            <%= h @base_project.name(true) %>
+        </div>
+        <div id="version_container" class="version_container">
+            <select class="versions" onchange="measure_project(<%= @base_project.id %>)">
+                <% @versions[@base_project.id].each_index do |i| %>
+                    <option value="<%= @versions[@base_project.id][i] %>" <%= i == 0 ? 'selected="true"' : '' %>>
+                        <%= @versions[@base_project.id][i] %>
+                    </option>
+                <% end %>
+            </select>
+        </div>
+        <% @metrics.each_index do |i| %>
+        <div id="metric<%= @metrics[i].id %>" class="measure_data <%= (i%2 == 0)? 'background1' : 'background2' %>">
+            <%= format_measure @base_project_measure_data['measure_data'][@metrics[i].id] %>
+        </div>
+        <% end %>
+    </div>
+    <% @target_projects.each do |project| %>
+    <div id="project<%= project.id %>" class="target_project">
+        <div class="name"><%= h project.name(true) %></div>
+        <div id="version_container" class="version_container">
+            <select class="versions">
+                <% @versions[project.id].each do |version| %>
+                    <option value="<%= version %>"><%= version %></option>
+                <% end %>
+            </select>
+        </div>
+        <% @metrics.each_index do |i| %>
+            <% base_project_measure = @base_project_measure_data['measure_data'][@metrics[i].id] %>
+            <% target_project_measure = @target_projects_measure_data[project.id]['measure_data'][@metrics[i].id] %>
+            <div id="metric<%= @metrics[i].id %>" class="measure_data <%= (i%2 == 0)? 'background1' : 'background2' %>">
+                <%= format_measure(target_project_measure) %>
+                <% if target_project_measure and base_project_measure %>
+                    <% if target_project_measure.value.to_f != base_project_measure.value.to_f %>
+                        (
+                        <% if target_project_measure.value.to_f > base_project_measure.value.to_f %>
+                            +
+                        <% end %>
+                        <%= target_project_measure.value.to_f - base_project_measure.value.to_f %>)
+                    <% end %>
+                <% end %>
+            </div>
+        <% end %>
+    </div>
+    <% end %>
 </div>

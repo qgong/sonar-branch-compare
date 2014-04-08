@@ -44,6 +44,12 @@ class BranchComparisonController < ApplicationController
     @base_project_measure_data = self._get_measure_data(@base_project,
                                                         @versions[@base_project.id][0],
                                                         @metrics)
+    @target_projects_measure_data = {}
+    @target_projects.each do |project|
+        @target_projects_measure_data[project.id] = self._get_measure_data(project,
+                                                                            @versions[project.id][0],
+                                                                            @metrics)
+    end
 
     rescue => e
       render :text => e.backtrace.join("\n")
@@ -62,7 +68,8 @@ class BranchComparisonController < ApplicationController
   def _get_branches(project_key, target_branches=nil)
     # get project key(without branch name)
     project_key_without_branch = project_key.split(':')[0,2].join(':')
-    sql_template = "kee LIKE :key_pattern AND kee != :base_branch_key"
+    sql_template = "kee LIKE :key_pattern AND kee != :base_branch_key
+                    AND root_id IS NULL"
     sql_params = {:key_pattern => "#{project_key_without_branch}%",
                   :base_branch_key => project_key}
     if target_branches and not target_branches.empty?
@@ -74,6 +81,7 @@ class BranchComparisonController < ApplicationController
     # filter projects
     target_branches = Project.all(:conditions => [sql_template, sql_params],
                                   :order => "kee ASC")
+    target_branches.map! {|item| Project.by_key(item.id)}
     return target_branches
   end
 
@@ -99,6 +107,7 @@ class BranchComparisonController < ApplicationController
     end
     data = {'id' => project.id,
             'name' => project.name(true),
+            'version' => version,
             'created_at' => snapshot.created_at,
             'measure_data' => measure_data}
     return data
@@ -114,6 +123,13 @@ class BranchComparisonController < ApplicationController
     end
     metrics = params['metrics'].map {|id| Metric.by_id(id)}
     data = self._get_measure_data(project, params['version'], metrics)
+    data['measure_data'].each_pair do |metric_id, project_measure|
+      if project_measure
+        data['measure_data'][metric_id] = [format_measure(project_measure), project_measure.value.to_f]
+      else
+        data['measure_data'][metric_id] = [nil, nil]
+      end
+    end
     render :json => data
   end
 end
