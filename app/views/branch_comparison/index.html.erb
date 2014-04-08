@@ -110,9 +110,26 @@ body {
 <script type="text/javascript">
 // global variables
 window.base_project_id = <%= j @base_project.id %>;
+window.target_project_ids = JSON.parse('<%= j JSON.dump(@target_projects.map {|item| item.id}) %>');
 window.base_project_measure_data = JSON.parse('<%= j JSON.dump(@base_project_measure_data) %>');
 window.metrics = JSON.parse('<%= j JSON.dump(@metrics.map {|metric| metric.id}) %>');
 window.versions = JSON.parse('<%= j JSON.dump(@versions) %>')
+
+function init()
+{
+    var project_ids = [window.base_project_id].concat(window.target_project_ids);
+    for (var id in project_ids) {
+        var xpath = ["//div[@id='project_container']",
+                        "//div[@id='project", window.base_project_id, "']",
+                        "//div[@id='version_container']", "//select"].join("");
+        var select_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
+        if (select_node) {
+            select_node.value = window.versions[id][0];
+        } else {
+            alert("select tag not found");
+        }
+    }
+}
 
 function ajax_request(method, path, data, callback)
 {
@@ -166,6 +183,7 @@ function create_project_node(measure_data)
     versions_node.setAttribute("class", "version_container");
     var select_node = document.createElement("select");
     select_node.setAttribute("class", "versions");
+    select_node.setAttribute("onchange", ["measure_project(", measure_data['id'], ")"].join(""));
     for (var i = 0; i < window.versions[measure_data['id']].length; ++i ) {
         var version = window.versions[measure_data['id']][i];
         var option_node = document.createElement("option");
@@ -180,8 +198,9 @@ function create_project_node(measure_data)
     project_node.appendChild(versions_node);
     // append measure data
     for (var i = 0; i < window.metrics.length; ++i) {
+        var metric_id = window.metrics[i];
         var measure_node = document.createElement("div");
-        measure_node.setAttribute("id", "metric" + window.metrics[i]);
+        measure_node.setAttribute("id", "metric" + metric_id);
         var class_attr = "measure_data";
         if (i % 2 == 0) {
             class_attr += " background1";
@@ -189,26 +208,25 @@ function create_project_node(measure_data)
             class_attr += " background2";
         }
         measure_node.setAttribute("class", class_attr);
-        var target_data = measure_data['measure_data'][window.metrics[i]];
-        var text;
+        var target_data = measure_data['measure_data'][metric_id];
+        var text = new Array();
         if (target_data[1]) {
-            text = target_data[0];
+            text.push(target_data[0]);
             if (measure_data['id'] != window.base_project_id) {
-                var base_data = window.base_project_measure_data['measure_data'][window.metrics[i]];
+                var base_data = window.base_project_measure_data['measure_data'][metric_id];
                 if (target_data[1] != base_data[1]) {
-                    text += "(";
+                    text.push("(");
                     if (target_data[1] > base_data[1]) {
-                        text += "+";
+                        text.push("+");
                     }
-                    text += target_data[1] - base_data[1]
-                    text += ")";
+                    this.tmp = target_data[1] - base_data[1];
+                    text.push(Math.round((tmp*100)/100));
+                    //text.push("" + (target_data[1] - base_data[1]));
+                    text.push(")");
                 }
             }
-        } else {
-            alert("No data for metric " + window.metrics[i]);
-            text = "";
         }
-        measure_node.appendChild(document.createTextNode(text));
+        measure_node.appendChild(document.createTextNode(text.join("")));
         project_node.appendChild(measure_node);
     }
     return project_node;
@@ -218,15 +236,18 @@ function replace_project_node(project_id, measure_data)
 {
     var xpath = "//div[@id='project_container']//div[@id='project" + project_id + "']";
     var project_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
-    var new_node = create_project_node(measure_data);
-    if (new_node) {
-        alert("replacing project " + project_id);
-        project_node.parentNode.replaceChild(new_node, project_node);
-        return true;
+    if (project_node) {
+        var new_node = create_project_node(measure_data);
+        if (new_node) {
+            project_node.parentNode.replaceChild(new_node, project_node);
+            return true;
+        } else {
+            alert("Failed to create project node for project " + project_id);
+        }
     } else {
-        alert("Failed to create project node for project " + project_id);
-        return false;
+        alert("Unabled to find project node for project " + project_id + ". Does it exist?");
     }
+    return false;
 }
 
 function remove_project_node(project_id)
@@ -248,10 +269,13 @@ function measure_project(project_id)
             // parse json data
             var measure_data = JSON.parse(http.responseText);
             if (measure_data) {
+                replace_project_node(project_id, measure_data);
                 if (project_id == window.base_project_id) {
                     window.base_project_measure_data = measure_data;
+                    for (var id in window.target_project_ids) {
+                        measure_project(id);
+                    }
                 }
-                replace_project_node(project_id, measure_data);
             } else {
                 alert("Failed to get measure data of project " + project_id);
             }
@@ -261,6 +285,8 @@ function measure_project(project_id)
                 "version=" + version + "&metrics=" + window.metrics.join(','),
                 ajax_callback);
 }
+
+window.onload = init;
 </script>
 <% end %>
 
@@ -291,7 +317,7 @@ function measure_project(project_id)
         </div>
         <% @metrics.each_index do |i| %>
         <div id="metric<%= @metrics[i].id %>" class="measure_data <%= (i%2 == 0)? 'background1' : 'background2' %>">
-            <%= format_measure @base_project_measure_data['measure_data'][@metrics[i].id] %>
+            <%= @base_project_measure_data['measure_data'][@metrics[i].id][0] %>
         </div>
         <% end %>
     </div>
@@ -299,7 +325,7 @@ function measure_project(project_id)
     <div id="project<%= project.id %>" class="target_project">
         <div class="name"><%= h project.name(true) %></div>
         <div id="version_container" class="version_container">
-            <select class="versions">
+            <select class="versions" onchange="measure_project(<%= project.id %>)">
                 <% @versions[project.id].each do |version| %>
                     <option value="<%= version %>"><%= version %></option>
                 <% end %>
@@ -309,14 +335,9 @@ function measure_project(project_id)
             <% base_project_measure = @base_project_measure_data['measure_data'][@metrics[i].id] %>
             <% target_project_measure = @target_projects_measure_data[project.id]['measure_data'][@metrics[i].id] %>
             <div id="metric<%= @metrics[i].id %>" class="measure_data <%= (i%2 == 0)? 'background1' : 'background2' %>">
-                <%= format_measure(target_project_measure) %>
-                <% if target_project_measure and base_project_measure %>
-                    <% if target_project_measure.value.to_f != base_project_measure.value.to_f %>
-                        (
-                        <% if target_project_measure.value.to_f > base_project_measure.value.to_f %>
-                            +
-                        <% end %>
-                        <%= target_project_measure.value.to_f - base_project_measure.value.to_f %>)
+                <%= target_project_measure[0] %>
+                <% if target_project_measure[1] and base_project_measure[1] %>
+                    <% if target_project_measure[1] != base_project_measure[1] %>(<% if target_project_measure[1] > base_project_measure[1] %>+<% end %><%= (target_project_measure[1] - base_project_measure[1]).round(2) %>)
                     <% end %>
                 <% end %>
             </div>

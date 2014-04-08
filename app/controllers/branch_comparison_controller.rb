@@ -31,6 +31,7 @@ class BranchComparisonController < ApplicationController
     @target_projects = self._get_branches(@base_project.key, target_branch_names)
     # find enabled metrics
     @metrics = Metric.all.select {|metric| metric.enabled}
+    #@metrics = [Metric.by_id(1)]
     @metrics.sort! {|a, b| a.name <=> b.name}
     # find all available versions for each project
     @versions = {}
@@ -103,7 +104,12 @@ class BranchComparisonController < ApplicationController
     # calculate result for each metric
     measure_data = {}
     metrics.each do |metric|
-      measure_data[metric.id] = snapshot.measure(metric)
+      project_measure = snapshot.measure(metric)
+      if project_measure
+        measure_data[metric.id] = [project_measure.formatted_value, project_measure.value]
+      else
+        measure_data[metric.id] = [nil, nil]
+      end
     end
     data = {'id' => project.id,
             'name' => project.name(true),
@@ -121,15 +127,8 @@ class BranchComparisonController < ApplicationController
     unless project
       render :json => nil
     end
-    metrics = params['metrics'].map {|id| Metric.by_id(id)}
+    metrics = params['metrics'].split(',').map {|id| Metric.by_id(id.to_i)}
     data = self._get_measure_data(project, params['version'], metrics)
-    data['measure_data'].each_pair do |metric_id, project_measure|
-      if project_measure
-        data['measure_data'][metric_id] = [format_measure(project_measure), project_measure.value.to_f]
-      else
-        data['measure_data'][metric_id] = [nil, nil]
-      end
-    end
     render :json => data
   end
 end
