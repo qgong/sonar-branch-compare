@@ -117,19 +117,16 @@ window.versions = JSON.parse('<%= j JSON.dump(@versions) %>')
 
 function init()
 {
-    var project_ids = [window.base_project_id].concat(window.target_project_ids);
-    for (var id in project_ids) {
+    var ids = [window.base_project_id].concat(window.target_project_ids);
+    for (var id in ids) {
         var xpath = ["//div[@id='project_container']",
-                        "//div[@id='project", window.base_project_id, "']",
-                        "//div[@id='version_container']", "//select"].join("");
+                    "//div[@id='", id, "']",
+                    "//select"].join("");
         var select_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
-        if (select_node) {
-            select_node.value = window.versions[id][0];
-        } else {
-            alert("select tag not found");
-        }
+        select_node.selectedIndex = 0;
     }
 }
+window.onload = init;
 
 function ajax_request(method, path, data, callback)
 {
@@ -210,8 +207,8 @@ function create_project_node(measure_data)
         measure_node.setAttribute("class", class_attr);
         var target_data = measure_data['measure_data'][metric_id];
         var text = new Array();
-        if (target_data[1]) {
-            text.push(target_data[0]);
+        text.push(target_data[0]);
+        if (target_data[1] != null) {
             if (measure_data['id'] != window.base_project_id) {
                 var base_data = window.base_project_measure_data['measure_data'][metric_id];
                 if (target_data[1] != base_data[1]) {
@@ -219,8 +216,8 @@ function create_project_node(measure_data)
                     if (target_data[1] > base_data[1]) {
                         text.push("+");
                     }
-                    this.tmp = target_data[1] - base_data[1];
-                    text.push(Math.round((tmp*100)/100));
+                    var tmp = target_data[1] - base_data[1];
+                    text.push(Math.round(tmp * 100) / 100);
                     //text.push("" + (target_data[1] - base_data[1]));
                     text.push(")");
                 }
@@ -272,7 +269,8 @@ function measure_project(project_id)
                 replace_project_node(project_id, measure_data);
                 if (project_id == window.base_project_id) {
                     window.base_project_measure_data = measure_data;
-                    for (var id in window.target_project_ids) {
+                    for (var i = 0; i < window.target_project_ids.length; ++i) {
+                        var id = window.target_project_ids[i];
                         measure_project(id);
                     }
                 }
@@ -285,8 +283,6 @@ function measure_project(project_id)
                 "version=" + version + "&metrics=" + window.metrics.join(','),
                 ajax_callback);
 }
-
-window.onload = init;
 </script>
 <% end %>
 
