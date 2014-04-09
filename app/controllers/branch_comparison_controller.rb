@@ -131,4 +131,7 @@ class BranchComparisonController < ApplicationController
     data = self._get_measure_data(project, params['version'], metrics)
     render :json => data
   end
+
+  def compare
+  end
 end
