@@ -1,343 +1,78 @@
 <% content_for :style do %>
-<style type="text/css">
-body {
-    background-color: #E0E0E0;
-}
-.metric {
-    float: left;
-}
-.metric .name {
-    width: 100%;
-    height: 2em;
-    float: left;
-    clear: both;
-    line-height: 2em;
-    text-align: left;
-    padding-left: 0.3em;
-    color: #FFFFFF;
-}
-.base_project {
-    float: left;
-    box-shadow: 0.5em 0.3em 0.2em #888888;
-    margin-right: 0.8em;
-}
-.base_project .name {
-    width: 100%;
-    height: 2em;
-    float: left;
-    clear: both;
-    line-height: 2em;
-    text-align: center;
-    padding-left: 0.3em;
-    background-color: #484848;
-    color: #FFFFFF;
-}
-.base_project .version_container {
-    width: 100%;
-    height: 2em;
-    float: left;
-    clear: both;
-    line-height: 2em;
-    text-align: center;
-    padding-left: 0.3em;
-    background-color: #C8C8C8;
-}
-.base_project .measure_data {
-    width: 100%;
-    height: 2em;
-    float: left;
-    clear: both;
-    line-height: 2em;
-    text-align: center;
-    padding-left: 0.3em;
-}
-.base_project .background1 {
-    background-color: #B8B8B8;
-}
-.base_project .background2 {
-    background-color: #C8C8C8;
-}
-
-.target_project {
-    float: left;
-    box-shadow: 0.5em 0.3em 0.2em #888888;
-    margin-right: 0.8em;
-}
-.target_project .name {
-    width: 100%;
-    height: 2em;
-    float: left;
-    clear: both;
-    line-height: 2em;
-    text-align: center;
-    padding-left: 0.3em;
-    background-color: #484848;
-    color: #FFFFFF;
-}
-.target_project .version_container {
-    width: 100%;
-    height: 2em;
-    float: left;
-    clear: both;
-    line-height: 2em;
-    text-align: center;
-    padding-left: 0.3em;
-    background-color: #C8C8C8;
-}
-.target_project .background1 {
-    background-color: #B8B8B8;
-}
-.target_project .background2 {
-    background-color: #C8C8C8;
-}
-.target_project .measure_data {
-    width: 100%;
-    height: 2em;
-    float: left;
-    clear: both;
-    line-height: 2em;
-    text-align: center;
-    padding-left: 0.3em;
-}
-.versions {
-    width: 6em;
-    text-align: center;
-}
-</style>
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
 <% end %>
 
 <% content_for :script do %>
-<script type="text/javascript">
-// global variables
-window.base_project_id = <%= j @base_project.id %>;
-window.target_project_ids = JSON.parse('<%= j JSON.dump(@target_projects.map {|item| item.id}) %>');
-window.base_project_measure_data = JSON.parse('<%= j JSON.dump(@base_project_measure_data) %>');
-window.metrics = JSON.parse('<%= j JSON.dump(@metrics.map {|metric| metric.id}) %>');
-window.versions = JSON.parse('<%= j JSON.dump(@versions) %>')
-
-function init()
-{
-    var ids = [window.base_project_id].concat(window.target_project_ids);
-    for (var id in ids) {
-        var xpath = ["//div[@id='project_container']",
-                    "//div[@id='", id, "']",
-                    "//select"].join("");
-        var select_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
-        select_node.selectedIndex = 0;
-    }
-}
-window.onload = init;
-
-function ajax_request(method, path, data, callback)
-{
-    var http;
-    if (window.XMLHttpRequest) {
-        // code for IE7+, Firefox, Chrome, Opera, Safari
-        http = new XMLHttpRequest();
-    } else {
-        // code for IE6, IE5
-        http = new ActiveXObject("Microsoft.XMLHTTP");
-    }
-    http.onreadystatechange = function()
-    {
-        callback(http);
-    }
-    http.open(method, path, true);
-    if (method == "POST") {
-        http.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-        http.setRequestHeader("Content-length", data.length);
-        http.send(data);
-    } else {
-        http.send()
-    }
-}
-
-function remove_all_child(node)
-{
-    while (node.firstChild) {
-        node.removeChild(node.firstChild);
-    }
-}
-
-function create_project_node(measure_data)
-{
-    var project_node = document.createElement("div");
-    // set properties
-    project_node.setAttribute("id", "project" + measure_data['id']);
-    if (measure_data['id'] == window.base_project_id) {
-        project_node.setAttribute("class", "base_project");
-    } else {
-        project_node.setAttribute("class", "target_project");
-    }
-    // append "name" node
-    var name_node = document.createElement("div");
-    name_node.setAttribute("class", "name");
-    name_node.appendChild(document.createTextNode(measure_data['name']));
-    project_node.appendChild(name_node);
-    // append "versions" node
-    var versions_node = document.createElement("div");
-    versions_node.setAttribute("id", "version_container");
-    versions_node.setAttribute("class", "version_container");
-    var select_node = document.createElement("select");
-    select_node.setAttribute("class", "versions");
-    select_node.setAttribute("onchange", ["measure_project(", measure_data['id'], ")"].join(""));
-    for (var i = 0; i < window.versions[measure_data['id']].length; ++i ) {
-        var version = window.versions[measure_data['id']][i];
-        var option_node = document.createElement("option");
-        option_node.setAttribute("value", version);
-        if (version == measure_data['version']) {
-            option_node.setAttribute("selected", "true");
-        }
-        option_node.appendChild(document.createTextNode(version));
-        select_node.appendChild(option_node);
-    }
-    versions_node.appendChild(select_node);
-    project_node.appendChild(versions_node);
-    // append measure data
-    for (var i = 0; i < window.metrics.length; ++i) {
-        var metric_id = window.metrics[i];
-        var measure_node = document.createElement("div");
-        measure_node.setAttribute("id", "metric" + metric_id);
-        var class_attr = "measure_data";
-        if (i % 2 == 0) {
-            class_attr += " background1";
-        } else {
-            class_attr += " background2";
-        }
-        measure_node.setAttribute("class", class_attr);
-        var target_data = measure_data['measure_data'][metric_id];
-        var text = new Array();
-        text.push(target_data[0]);
-        if (target_data[1] != null) {
-            if (measure_data['id'] != window.base_project_id) {
-                var base_data = window.base_project_measure_data['measure_data'][metric_id];
-                if (target_data[1] != base_data[1]) {
-                    text.push("(");
-                    if (target_data[1] > base_data[1]) {
-                        text.push("+");
-                    }
-                    var tmp = target_data[1] - base_data[1];
-                    text.push(Math.round(tmp * 100) / 100);
-                    //text.push("" + (target_data[1] - base_data[1]));
-                    text.push(")");
-                }
-            }
-        }
-        measure_node.appendChild(document.createTextNode(text.join("")));
-        project_node.appendChild(measure_node);
-    }
-    return project_node;
-}
-
-function replace_project_node(project_id, measure_data)
-{
-    var xpath = "//div[@id='project_container']//div[@id='project" + project_id + "']";
-    var project_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
-    if (project_node) {
-        var new_node = create_project_node(measure_data);
-        if (new_node) {
-            project_node.parentNode.replaceChild(new_node, project_node);
-            return true;
-        } else {
-            alert("Failed to create project node for project " + project_id);
-        }
-    } else {
-        alert("Unabled to find project node for project " + project_id + ". Does it exist?");
-    }
-    return false;
-}
-
-function remove_project_node(project_id)
-{
-    var xpath = "//div[@id='project_container']//div[@id='project" + project_id + "']";
-    var project_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
-    project_node.parentNode.removeChild(project_node);
-    return project_node;
-}
-
-function measure_project(project_id)
-{
-    var xpath = "//div[@id='project_container']//div[@id='project" + project_id + "']//div[@id='version_container']//select";
-    var select_node = document.evaluate(xpath, document, null, 9, null).singleNodeValue;
-    var version = select_node.value;
-
-    ajax_callback = function(http) {
-        if (http.readyState==4 && http.status==200) {
-            // parse json data
-            var measure_data = JSON.parse(http.responseText);
-            if (measure_data) {
-                replace_project_node(project_id, measure_data);
-                if (project_id == window.base_project_id) {
-                    window.base_project_measure_data = measure_data;
-                    for (var i = 0; i < window.target_project_ids.length; ++i) {
-                        var id = window.target_project_ids[i];
-                        measure_project(id);
-                    }
-                }
-            } else {
-                alert("Failed to get measure data of project " + project_id);
-            }
-        }
-    }
-    ajax_request('POST', "../get_measure_data/" + project_id,
-                "version=" + version + "&metrics=" + window.metrics.join(','),
-                ajax_callback);
-}
-</script>
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <!-- bootstrap -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 <% end %>
 
-<div id="project_container">
-    <div id="metric_container" class="metric">
-        <!--place holder-->
-        <div class="name"></div>
-        <div class="name"></div>
-        <!--metric names-->
-        <% @metrics.each_index do |i| %>
-        <div id="metric<%= @metrics[i].id %>" class="name" style="background-color: <%= (i%2 == 0)? '#282828' : '#484848' %>">
-            <%= @metrics[i].name %>
-        </div>
-        <% end %>
+<div class="container">
+  <nav class="navbar navbar-default" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="#">Comparison</a>
+      </div>
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-left">
+          <li class="active">
+            <a href="#">QE CI Testing master <span class="label label-primary">Base Branch</span></a>
+          </li>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">version <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="#">1.1 <span class="glyphicon glyphicon-ok"></span></a></li>
+              <li><a href="#">1.0</a></li>
+            </ul>
+          </li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li class="active">
+            <a href="#">
+              QE CI Testing devel <span class="label label-primary">Target Branch</span>
+            </a>
+          </li>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">version <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="#">1.2 <span class="glyphicon glyphicon-ok"></span></a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
     </div>
-    <div id="project<%= @base_project.id %>" class="base_project">
-        <div class="name">
-            <%= h @base_project.name(true) %>
-        </div>
-        <div id="version_container" class="version_container">
-            <select class="versions" onchange="measure_project(<%= @base_project.id %>)">
-                <% @versions[@base_project.id].each_index do |i| %>
-                    <option value="<%= @versions[@base_project.id][i] %>" <%= i == 0 ? 'selected="true"' : '' %>>
-                        <%= @versions[@base_project.id][i] %>
-                    </option>
+  </nav>
+  <div class="row">
+    <% [['line', 'comment', 'complexity'], ['issue', 'duplication']].each do |col| %>
+      <div class="col-md-6">
+        <% col.each do |category| %>
+          <div id="<%= category %>-panel" class="panel panel-default">
+            <div class="panel-heading"><%= category.capitalize %></div>
+            <table class="table-responsive">
+              <thead>
+                <tr>
+                  <td>#</td>
+                  <td><%= @base_project.branch %></td>
+                  <td><%= @target_project.branch %></td>
+                </tr>
+              </thead>
+              <tbody>
+                <% @metrics['line'].each do |metric, type| %>
+                  <tr id="<%= metric.name %>">
+                    <td><%= metric.short_name %></td>
+                    <td></td>
+                  </tr>
                 <% end %>
-            </select>
-        </div>
-        <% @metrics.each_index do |i| %>
-        <div id="metric<%= @metrics[i].id %>" class="measure_data <%= (i%2 == 0)? 'background1' : 'background2' %>">
-            <%= @base_project_measure_data['measure_data'][@metrics[i].id][0] %>
-        </div>
+              </tbody>
+            </table>
+          </div>
         <% end %>
-    </div>
-    <% @target_projects.each do |project| %>
-    <div id="project<%= project.id %>" class="target_project">
-        <div class="name"><%= h project.name(true) %></div>
-        <div id="version_container" class="version_container">
-            <select class="versions" onchange="measure_project(<%= project.id %>)">
-                <% @versions[project.id].each do |version| %>
-                    <option value="<%= version %>"><%= version %></option>
-                <% end %>
-            </select>
-        </div>
-        <% @metrics.each_index do |i| %>
-            <% base_project_measure = @base_project_measure_data['measure_data'][@metrics[i].id] %>
-            <% target_project_measure = @target_projects_measure_data[project.id]['measure_data'][@metrics[i].id] %>
-            <div id="metric<%= @metrics[i].id %>" class="measure_data <%= (i%2 == 0)? 'background1' : 'background2' %>">
-                <%= target_project_measure[0] %>
-                <% if target_project_measure[1] and base_project_measure[1] %>
-                    <% if target_project_measure[1] != base_project_measure[1] %>(<% if target_project_measure[1] > base_project_measure[1] %>+<% end %><%= (target_project_measure[1] - base_project_measure[1]).round(2) %>)
-                    <% end %>
-                <% end %>
-            </div>
-        <% end %>
-    </div>
+      </div>
     <% end %>
+  </div>
 </div>
