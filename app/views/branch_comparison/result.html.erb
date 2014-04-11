@@ -1,0 +1,98 @@
+<% content_for :style do %>
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+  <style>
+    .highlight-green {
+      background-color: #66CC00;
+    }
+    .highlight-red {
+      color: #FFFFFF;
+      background-color: #FF3300;
+    }
+  </style>
+<% end %>
+
+<% content_for :script do %>
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <!-- bootstrap -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+  <script>
+  </script>
+<% end %>
+
+<div class="container">
+  <nav class="navbar navbar-default" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="#">Comparison</a>
+      </div>
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <% [[@base_project, @base_version, @base_version_list, 'base', 'left'],
+            [@target_project, @target_version, @target_version_list, 'target', 'right']].each do |project, version, version_list, branch, side| %>
+          <ul class="nav navbar-nav navbar-<%= side %>">
+            <li class="active">
+              <a href="#">
+                <%= project.name(true) %> <span class="label label-info"><%= branch.capitalize %></span>
+              </a>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">version <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <% version_list.each do |item| %>
+                  <li><a id="version-<%= item %>" href="#">
+                    <%= item %> <%= item == version ? '<span class="glyphicon glyphicon-ok"></span>' : '' %>
+                  </a></li>
+                <% end %>
+              </ul>
+            </li>
+          </ul>
+        <% end %>
+      </div>
+    </div>
+  </nav>
+  <div class="row">
+    <% @metric_layout.each do |col| %>
+      <div class="col-md-6">
+        <% col.each do |category| %>
+          <div id="<%= category %>-panel" class="panel panel-default">
+            <div class="panel-heading"><%= category.capitalize %></div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <td>#</td>
+                  <td><%= @base_project.branch %></td>
+                  <td><%= @target_project.branch %></td>
+                </tr>
+              </thead>
+              <tbody>
+                <% @metrics[category].each do |metric, type| %>
+                  <% highlight = case @measure_data[metric.name]['quality']
+                                    when 1
+                                      'class="highlight-green"'
+                                    when -1
+                                      'class="highlight-red"'
+                                    else
+                                      ''
+                  end %>
+                  <tr id="<%= metric.name %>" <%= highlight %>>
+                    <td><%= metric.short_name %></td>
+                    <td><%= @measure_data[metric.name]['base'] %></td>
+                    <td>
+                      <%= @measure_data[metric.name]['target'] %>
+                      <% if @measure_data[metric.name]['delta'] %>
+                        (<%= @measure_data[metric.name]['delta'] %>)
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
