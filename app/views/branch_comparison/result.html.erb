@@ -20,6 +20,23 @@
   <!-- bootstrap -->
   <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
   <script>
+  function measure(base_project_id, base_version, target_project_id, target_version)
+  {
+    alert("start measuring");
+    var path = ['..', base_project_id].join('/');
+    var params = [['base_version', base_version]
+                  ['target', target_project_id],
+                  ['target_version', target_version]];
+    for (var i in params) {
+      var name = params[i][0];
+      var value = encodeURIComponent(params[i][1]);
+      params[i] = [name, value].join('=');
+    }
+    params = params.join('&');
+    var url = [path, params].join('?');
+    alert("Redirecting to " + url);
+    window.location = url;
+  }
   </script>
 <% end %>
 
@@ -42,8 +59,18 @@
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">version <b class="caret"></b></a>
               <ul class="dropdown-menu">
                 <% version_list.each do |item| %>
-                  <li><a id="version-<%= item %>" href="#">
-                    <%= item %> <%= item == version ? '<span class="glyphicon glyphicon-ok"></span>' : '' %>
+                  <!--generate url-->
+                  <%  if branch == 'base'
+                        base_version = item
+                        target_version = @target_version
+                      else
+                        base_version = @base_version
+                        target_version = item
+                      end
+                  %>
+../11?base_version=xxx&target=xx&target_version=xx
+                  <li><a onclick="measure(<%= @base_project.id %>, '<%= base_version %>', <%= @target_project.id %>, '<%= target_version %>')">
+                    <%= item %><%= item == version ? ' <span class="glyphicon glyphicon-ok"></span>' : '' %>
                   </a></li>
                 <% end %>
               </ul>

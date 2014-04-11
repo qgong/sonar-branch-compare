@@ -29,6 +29,10 @@ class BranchComparisonController < ApplicationController
                     ['complexity', -1]],
   }
 
+  # params[:id]               id/key of the base project
+  # params['target']          id/key of the target project
+  # params['base_version']    optional, version of the base project
+  # params['target_version']  optional, version of the target project
   def result
     base_project_id = params[:id]
     target_project_id = params['target']
