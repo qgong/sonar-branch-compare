@@ -58,8 +58,8 @@ class BranchComparisonController < ApplicationController
     unless @base_version_list.include?(@base_version) and @target_version_list.include?(@target_version)
       render :text => "Version not found: base #{@base_version}, target: #{@target_version}"
     end
-    @measure_data = self._get_measure_data(@base_project.id, @base_version_list[0],
-                                            @target_project.id, @target_version_list[0])
+    @measure_data = self._get_measure_data(@base_project.id, @base_version,
+                                            @target_project.id, @target_version)
   end
 
   def _get_project_versions(id)

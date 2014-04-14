@@ -19,25 +19,6 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
   <!-- bootstrap -->
   <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-  <script>
-  function measure(base_project_id, base_version, target_project_id, target_version)
-  {
-    alert("start measuring");
-    var path = ['..', base_project_id].join('/');
-    var params = [['base_version', base_version]
-                  ['target', target_project_id],
-                  ['target_version', target_version]];
-    for (var i in params) {
-      var name = params[i][0];
-      var value = encodeURIComponent(params[i][1]);
-      params[i] = [name, value].join('=');
-    }
-    params = params.join('&');
-    var url = [path, params].join('?');
-    alert("Redirecting to " + url);
-    window.location = url;
-  }
-  </script>
 <% end %>
 
 <div class="container">
@@ -67,9 +48,11 @@
                         base_version = @base_version
                         target_version = item
                       end
+                      url = "#{@base_project.id}?"
+                      url << ["base_version=#{base_version}", "target=#{@target_project.id}",
+                              "target_version=#{target_version}"].join('&')
                   %>
-../11?base_version=xxx&target=xx&target_version=xx
-                  <li><a onclick="measure(<%= @base_project.id %>, '<%= base_version %>', <%= @target_project.id %>, '<%= target_version %>')">
+                  <li><a href="<%= url %>">
                     <%= item %><%= item == version ? ' <span class="glyphicon glyphicon-ok"></span>' : '' %>
                   </a></li>
                 <% end %>
