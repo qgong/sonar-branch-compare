@@ -5,12 +5,21 @@
   <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
   <style>
     .highlight-green {
-      background-color: #66CC00;
+      background-color: #99CC00;
     }
+    .highlight-green a:link {color: #3366FF}      /* unvisited link */
+    .highlight-green a:visited {color: #3366FF}  /* visited link */
+    .highlight-green a:hover {color: #3366FF}  /* mouse over link */
+    .highlight-green a:active {color: #3366FF}  /* selected link */ 
+
     .highlight-red {
       color: #FFFFFF;
       background-color: #FF3300;
     }
+    .highlight-red a:link {color: #0033FF}      /* unvisited link */
+    .highlight-red a:visited {color: #0033FF}  /* visited link */
+    .highlight-red a:hover {color: #0033FF}  /* mouse over link */
+    .highlight-red a:active {color: #0033FF}  /* selected link */ 
   </style>
 <% end %>
 
@@ -32,7 +41,7 @@
             [@target_project, @target_version, @target_version_list, 'target', 'right']].each do |project, version, version_list, branch, side| %>
           <ul class="nav navbar-nav navbar-<%= side %>">
             <li class="active">
-              <a href="#">
+              <a href="/dashboard/index/<%= project.key %>">
                 <%= project.name(true) %> <span class="label label-info"><%= branch.capitalize %></span>
               </a>
             </li>
@@ -48,9 +57,9 @@
                         base_version = @base_version
                         target_version = item
                       end
-                      url = "#{@base_project.id}?"
-                      url << ["base_version=#{base_version}", "target=#{@target_project.id}",
-                              "target_version=#{target_version}"].join('&')
+                      url = "./#{url_encode(@base_project.key)}?"
+                      url << ["base_version=#{url_encode(base_version)}", "target=#{url_encode(@target_project.key)}",
+                              "target_version=#{url_encode(target_version)}"].join('&')
                   %>
                   <li><a href="<%= url %>">
                     <%= item %><%= item == version ? ' <span class="glyphicon glyphicon-ok"></span>' : '' %>
@@ -67,7 +76,7 @@
     <% @metric_layout.each do |col| %>
       <div class="col-md-6">
         <% col.each do |category| %>
-          <div id="<%= category %>-panel" class="panel panel-default">
+          <div id="<%= category %>-panel" class="panel panel-primary">
             <div class="panel-heading"><%= category.capitalize %></div>
             <table class="table">
               <thead>
@@ -78,8 +87,8 @@
                 </tr>
               </thead>
               <tbody>
-                <% @metrics[category].each do |metric, type| %>
-                  <% highlight = case @measure_data[metric.name]['quality']
+                <% @metrics[category].each do |hash| %>
+                  <% highlight = case @measure_data[hash[:name]]['quality']
                                     when 1
                                       'class="highlight-green"'
                                     when -1
@@ -87,13 +96,17 @@
                                     else
                                       ''
                   end %>
-                  <tr id="<%= metric.name %>" <%= highlight %>>
-                    <td><%= metric.short_name %></td>
-                    <td><%= @measure_data[metric.name]['base'] %></td>
+                  <tr id="<%= hash[:name] %>" <%= highlight %>>
+                    <td><%= hash[:short_name] %></td>
+                    <td><a href="<%= get_url(@metrics, category, hash[:name], {:id => @base_project.key}) -%>">
+                      <%= @measure_data[hash[:name]]['base'] %>
+                    </a></td>
                     <td>
-                      <%= @measure_data[metric.name]['target'] %>
-                      <% if @measure_data[metric.name]['delta'] %>
-                        (<%= @measure_data[metric.name]['delta'] %>)
+                      <a href="<%= get_url(@metrics, category, hash[:name], {:id => @target_project.key}) -%>">
+                        <%= @measure_data[hash[:name]]['target'] %>
+                      </a>
+                      <% if @measure_data[hash[:name]]['delta'] %>
+                        (<%= @measure_data[hash[:name]]['delta'] %>)
                       <% end %>
                     </td>
                   </tr>
