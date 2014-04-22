@@ -1,0 +1,15 @@
+<artifactId>sonar-branch-comparison-plugin</artifactId>
+<packaging>sonar-plugin</packaging>
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.codehaus.sonar</groupId>
+      <artifactId>sonar-packaging-maven-plugin</artifactId>
+      <version>1.7</version>
+      <extensions>true</extensions>
+      <configuration>
+        <pluginClass>com.redhat.sonar.branchcomparison.BranchComparisonPlugin</pluginClass>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
