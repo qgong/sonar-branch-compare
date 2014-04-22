@@ -3,12 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.codehaus.sonar.examples</groupId>
-  <artifactId>sonar-reference-plugin</artifactId>
+  <artifactId>sonar-branchcomparison-plugin</artifactId>
   <packaging>sonar-plugin</packaging>
-  <version>0.1-SNAPSHOT</version>
+  <version>1.0</version>
 
-  <name>Sonar :: Branch Comparison Plugin</name>
-  <description>Compare Two Branches and Show the Result</description>
+  <name>Branch Comparison</name>
+  <description>Compare Two Branches of the Repo</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -87,5 +87,4 @@
       </plugin>
     </plugins>
   </build>
-
 </project>
