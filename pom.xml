@@ -8,7 +8,7 @@
   <version>1.0</version>
 
   <name>Branch Comparison</name>
-  <description>Compare Two Branches of the Repo</description>
+  <description>Plugin description will be displayed in SonarQube</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -60,7 +60,9 @@
         <version>1.3</version>
         <extensions>true</extensions>
         <configuration>
-          <pluginClass>com.redhat.sonar.branchcomparison.BranchComparisonPlugin</pluginClass>
+          <pluginKey>branchcomparison</pluginKey>
+          <pluginName>Branch Comparison</pluginName>
+          <pluginClass>org.sonar.branchcomparison.BranchComparisonPlugin</pluginClass>
         </configuration>
       </plugin>
       <plugin>

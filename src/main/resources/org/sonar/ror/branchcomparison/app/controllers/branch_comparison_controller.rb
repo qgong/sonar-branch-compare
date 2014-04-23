@@ -52,6 +52,10 @@ class BranchComparisonController < ApplicationController
     end
   end
 
+  def index
+    render :text => 'Branch Comparison Plugin Index Page'
+  end
+
   # params[:id]               id/key of the base project
   # params['target']          id/key of the target project
   # params['base_version']    optional, version of the base project
