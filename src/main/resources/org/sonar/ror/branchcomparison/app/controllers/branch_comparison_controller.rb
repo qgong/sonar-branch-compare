@@ -64,7 +64,6 @@ class BranchComparisonController < ApplicationController
   def result
     begin
 
-    email = params['email'] == 'true' ? true : false
     base_project_id = params[:id]
     target_project_id = params['target']
     @base_project = Project.by_key(base_project_id)
@@ -87,11 +86,11 @@ class BranchComparisonController < ApplicationController
                                             @target_project.id, @target_version)
 
     # send email
-    if email
+    if params['email']
       subject = "[sonar] #{@base_project.name(true)} <=> #{@target_project.name(true)}"
       sender = "noreply@redhat.com"
-      receiver = "jizhao@redhat.com"
-      text = "<table><thead><tr><td>#</td><td>#{@base_project.branch}</td></tr><td>#{@target_project.branch}</td></thead><tbody>"
+      receiver = params['email']
+      text = "#{"#".ljust(30)}#{@base_project.branch.ljust(25)}#{@target_project.branch.ljust(25)}\n"
       @measure_data.each_pair do |metric_name, data|
         if data['delta']
           if data['delta'] > 0
@@ -102,11 +101,8 @@ class BranchComparisonController < ApplicationController
         else
           delta = ""
         end
-        text << "<tr><td>#{Metric.by_name(metric_name).short_name}</td>
-<td>#{data['base']}</td>
-<td>#{data['target']}#{delta}</td></tr>"
+        text << "#{Metric.by_name(metric_name).short_name.ljust(30)}#{data['base'].ljust(25)}#{(data['target'] + delta).ljust(25)}"
       end
-      text << "</tbody></table>"
       self._send_email(subject, text, sender, receiver)
     end
 
@@ -119,8 +115,6 @@ class BranchComparisonController < ApplicationController
     msg = <<MESSAGE_END
 From: #{sender}
 To: #{receiver}
-MIME-Version: 1.0
-Content-type: text/html
 Subject: #{subject}
 
 #{text}
