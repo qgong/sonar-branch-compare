@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby 
 require 'json'
 require 'set'
+require 'net/smtp'
 
 METRICS = { 
   'line' => [{:name => 'ncloc', :character => 0, :type => :measure},
@@ -63,6 +64,7 @@ class BranchComparisonController < ApplicationController
   def result
     begin
 
+    email = params['email'] == 'true' ? true : false
     base_project_id = params[:id]
     target_project_id = params['target']
     @base_project = Project.by_key(base_project_id)
@@ -84,8 +86,48 @@ class BranchComparisonController < ApplicationController
     @measure_data = self._get_measure_data(@base_project.id, @base_version,
                                             @target_project.id, @target_version)
 
+    # send email
+    if email
+      subject = "[sonar] #{@base_project.name(true)} <=> #{@target_project.name(true)}"
+      sender = "noreply@redhat.com"
+      receiver = "jizhao@redhat.com"
+      text = "<table><thead><tr><td>#</td><td>#{@base_project.branch}</td></tr><td>#{@target_project.branch}</td></thead><tbody>"
+      @measure_data.each_pair do |metric_name, data|
+        if data['delta']
+          if data['delta'] > 0
+            delta = "(+#{data['delta']})"
+          else
+            delta = "(#{data['delta']})"
+          end
+        else
+          delta = ""
+        end
+        text << "<tr><td>#{Metric.by_name(metric_name).short_name}</td>
+<td>#{data['base']}</td>
+<td>#{data['target']}#{delta}</td></tr>"
+      end
+      text << "</tbody></table>"
+      self._send_email(subject, text, sender, receiver)
+    end
+
     rescue => e
       render :text => e
+    end
+  end
+
+  def _send_email(subject, text, sender, receiver)
+    msg = <<MESSAGE_END
+From: #{sender}
+To: #{receiver}
+MIME-Version: 1.0
+Content-type: text/html
+Subject: #{subject}
+
+#{text}
+MESSAGE_END
+
+    Net::SMTP.start('localhost') do |smtp|
+      smtp.send_message(msg, "#{ENV['USER']}@#{ENV['HOSTNAME']}", receiver)
     end
   end
 
