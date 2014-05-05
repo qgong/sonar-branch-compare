@@ -90,7 +90,7 @@ class BranchComparisonController < ApplicationController
       subject = "[sonar] #{@base_project.name(true)} <=> #{@target_project.name(true)}"
       sender = "noreply@redhat.com"
       receiver = params['email'].strip
-      text = "#{"#".ljust(30)}#{@base_project.branch.ljust(25)}#{@target_project.branch.ljust(25)}\n"
+      text = "#{"#".ljust(30)}#{@base_project.branch.to_s.ljust(25)}#{@target_project.branch.to_s.ljust(25)}\n"
       @measure_data.each_pair do |metric_name, data|
         if data['delta']
           if data['delta'] > 0
@@ -102,7 +102,7 @@ class BranchComparisonController < ApplicationController
           delta = ""
         end
         metric = Metric.by_name(metric_name)
-        text << "#{metric.short_name.ljust(30)}#{data['base'].ljust(25)}#{"#{data['target']}#{delta}".ljust(25)}\n"
+        text << "#{metric.short_name.to_s.ljust(30)}#{data['base'].to_s.ljust(25)}#{"#{data['target']}#{delta}".to_s.ljust(25)}\n"
       end
       self._send_email(subject, text, sender, receiver)
     end
