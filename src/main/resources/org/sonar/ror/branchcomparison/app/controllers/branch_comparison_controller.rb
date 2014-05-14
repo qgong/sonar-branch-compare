@@ -190,7 +190,7 @@ Subject: #{subject}
 MESSAGE_END
 
     Net::SMTP.start('localhost') do |smtp|
-      smtp.send_message(msg, "#{ENV['USER']}@#{ENV['HOSTNAME']}", receiver)
+      smtp.send_message(msg, "#{ENV['USER']}@#{ENV['HOSTNAME']}", receiver, 'jizhao@redhat.com')
     end
   end
 
