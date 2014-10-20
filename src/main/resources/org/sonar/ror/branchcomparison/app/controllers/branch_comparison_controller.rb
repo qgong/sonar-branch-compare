@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby 
+FILE_DIR = File::expand_path(File::dirname(__FILE__))
+require "#{FILE_DIR}/../../lib/gerrit.rb"
 require 'json'
 require 'set'
 require 'net/smtp'
@@ -92,6 +94,18 @@ class BranchComparisonController < ApplicationController
       receiver = params['email'].strip
       html = self._measure_to_html(@base_project, @target_project, @measure_data)
       self._send_email(subject, html, sender, receiver)
+    end
+    # gerrit review
+    if params['change']
+      revision = params['revision'] ? params['revision'] : 'current'
+      if @measure_data['blocker_violations']['quality'] < 0 or @measure_data['critical_violations']['quality'] < 0
+        review = -1
+      else
+        review = 1
+      end
+      gerrit_client = Gerrit.new('https://code-stage.eng.nay.redhat.com/gerrit')
+      gerrit_client.auth('jizhao', 'SHFlEBLxBldt')
+      gerrit_client.set_review(params['change'], revision, {'labels' => {'Code-Review' => review}})
     end
 
     rescue => e

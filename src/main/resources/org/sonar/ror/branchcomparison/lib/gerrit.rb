@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby
 FILE_DIR = File::expand_path(File::dirname(__FILE__))
-require 'openssl'
-require 'uri'
-require 'net/http'
-require 'json'
 require "#{FILE_DIR}/digest_auth.rb"
+require 'uri'
+require 'net/https'
+require 'openssl'
+require 'json'
 
 module Rest
   def self.get(url, auth=nil)
@@ -45,7 +45,7 @@ module Rest
     # Handle ssl
     if uri.scheme == 'https'
       http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      http.verify_mode = 0
     end
     # Get WWW-Authenticate header
     if not auth.nil?
