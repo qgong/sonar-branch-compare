@@ -129,6 +129,11 @@ class Gerrit
     return CurlRest::parse(CurlRest::get(url, @auth))
   end
 
+  def query_changes_by_revision(revision_id)
+    url = "#{@base_url}/a/changes/?q=#{revision_id}"
+    return CurlRest::parse(CurlRest::get(url, @auth))
+  end
+
   def abandon_change(change_id, data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/abandon"
     return CurlRest::parse(CurlRest::post(url, data, @auth))
@@ -224,3 +229,8 @@ class Gerrit
     end
   end
 end
+
+
+gerrit = Gerrit.new('https://code-stage.eng.nay.redhat.com/gerrit')
+gerrit.auth('jizhao', 'SHFlEBLxBldt')
+puts gerrit.query_changes_by_revision('ff5d6953047001abb3c9eae3a74a1abb7273cfe8')
