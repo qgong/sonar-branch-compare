@@ -105,7 +105,10 @@ class BranchComparisonController < ApplicationController
       end
       gerrit_client = Gerrit.new('https://code-stage.eng.nay.redhat.com/gerrit')
       gerrit_client.auth('jizhao', 'SHFlEBLxBldt')
-      gerrit_client.set_review(params['change'], revision, {'labels' => {'Code-Review' => review}})
+      result_url = "http://#{request.host}:#{request.port}/branch_comparison/result/#{@base_project.id}?target=#{@target_project.id}"
+      gerrit_client.set_review(params['change'], revision,
+                              { 'labels' => {'Code-Review' => review},
+                                'message' => "Comparison Result: #{result_url}"})
     end
 
     rescue => e
