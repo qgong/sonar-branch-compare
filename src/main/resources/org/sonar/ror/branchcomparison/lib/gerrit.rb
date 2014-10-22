@@ -6,6 +6,46 @@ require 'net/https'
 require 'openssl'
 require 'json'
 
+module CurlRest
+  def self.request(cmd, auth=nil)
+    auth = "--digest -u'#{auth[0]}:#{auth[1]}'" if not auth.nil?
+    cmd << " " << auth if not auth.nil?
+    puts "Command: #{cmd}"
+    output = `#{cmd}`
+    return output
+  end
+
+  def self.parse(output)
+    magic_prefix = ")]}'\n"
+    if not output.nil? and output.start_with?(magic_prefix)
+      output = output[magic_prefix.length, output.length]
+      return JSON::load(output)
+    else
+      return nil
+    end
+  end
+
+  def self.get(url, auth=nil)
+    cmd = "curl -sk -X GET '#{url}'"
+    return self.request(cmd, auth)
+  end
+
+  def self.post(url, data, auth=nil)
+    cmd = "curl -sk -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d '#{JSON.dump(data)}' '#{url}'"
+    return self.request(cmd, auth)
+  end
+
+  def self.put(url, data, auth=nil)
+    cmd = "curl -sk -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json' -d '#{JSON.dump(data)}' '#{url}'"
+    return self.request(cmd, auth)
+  end
+
+  def self.delete(url, auth=nil)
+    cmd = "curl -sk -X DELETE '#{url}'"
+    return self.request(cmd, auth)
+  end
+end
+
 module Rest
   def self.get(url, auth=nil)
     req = Net::HTTP::Get.new(url)
@@ -86,76 +126,81 @@ class Gerrit
   ################################################################################
   def get_change(change_id)
     url = "#{@base_url}/a/changes/#{change_id}"
-    return Rest::parse(Rest::get(url, @auth))
+    return CurlRest::parse(CurlRest::get(url, @auth))
+  end
+
+  def query_changes_by_revision(revision_id)
+    url = "#{@base_url}/a/changes/?q=#{revision_id}"
+    return CurlRest::parse(CurlRest::get(url, @auth))
   end
 
   def abandon_change(change_id, data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/abandon"
-    return Rest::parse(Rest::post(url, data, @auth))
+    return CurlRest::parse(CurlRest::post(url, data, @auth))
   end
 
   def restore_change(change_id, data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/restore"
-    return Rest::parse(Rest::post(url, data, @auth))
+    return CurlRest::parse(CurlRest::post(url, data, @auth))
   end
 
   def rebase_change(change_id, data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/rebase"
-    return Rest::parse(Rest::post(url, data, @auth))
+    return CurlRest::parse(CurlRest::post(url, data, @auth))
   end
 
   def revert_change(change_id, data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/revert"
-    return Rest::parse(Rest::post(url, data, @auth))
+    return CurlRest::parse(CurlRest::post(url, data, @auth))
   end
 
   def submit_change(change_id, data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/submit"
-    return Rest::parse(Rest::post(url, data, @auth))
+    return CurlRest::parse(CurlRest::post(url, data, @auth))
   end
   ################################################################################
   # Reviewer endpoints
   ################################################################################
   def list_reviewers(change_id)
     url = "#{@base_url}/a/changes/#{change_id}/reviewers"
-    return Rest::parse(Rest::get(url, @auth))
+    return CurlRest::parse(CurlRest::get(url, @auth))
   end
 
   def get_reviewer(change_id, account_id)
     url = "#{@base_url}/a/changes/#{change_id}/reviewers/#{account_id}"
-    return Rest::parse(Rest::get(url, @auth))
+    return CurlRest::parse(CurlRest::get(url, @auth))
   end
 
   def add_reviewer(change_id, data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/reviewers"
-    return Rest::parse(Rest::post(url, data, @auth))
+    return CurlRest::parse(CurlRest::post(url, data, @auth))
   end
 
   def delete_reviewer(change_id, account_id)
     url = "#{@base_url}/a/changes/#{change_id}/reviewers/"
-    return Rest::parse(Rest::delete(url, @auth))
+    return CurlRest::parse(CurlRest::delete(url, @auth))
   end
   ################################################################################
   # Revision endpoints
   ################################################################################
   def get_commit(change_id, revision_id='current')
     url = "#{@base_url}/a/changes/#{change_id}/revisions/#{revision_id}/commit"
-    return Rest::parse(Rest::get(url, @auth))
+    return CurlRest::parse(CurlRest::get(url, @auth))
   end
 
   def get_review(change_id, revision_id='current')
     url = "#{@base_url}/a/changes/#{change_id}/revisions/#{revision_id}/review"
-    return Rest::parse(Rest::get(url, @auth))
+    return CurlRest::parse(CurlRest::get(url, @auth))
   end
 
   def get_related_changes(change_id, revision_id='current')
     url = "#{@base_url}/a/changes/#{change_id}/revisions/#{revision_id}/related"
-    return Rest::parse(Rest::get(url, @auth))
+    return CurlRest::parse(CurlRest::get(url, @auth))
   end
 
   def set_review(change_id, revision_id='current', data=nil)
     url = "#{@base_url}/a/changes/#{change_id}/revisions/#{revision_id}/review"
-    return Rest::parse(Rest::post(url, data, @auth))
+    return CurlRest::parse(CurlRest::post(url, data, @auth))
   end
 
   def fetch_change(change_id, local_repo, method='checkout', link_type='ssh')
@@ -184,3 +229,8 @@ class Gerrit
     end
   end
 end
+
+
+gerrit = Gerrit.new('https://code-stage.eng.nay.redhat.com/gerrit')
+gerrit.auth('jizhao', 'SHFlEBLxBldt')
+puts gerrit.query_changes_by_revision('ff5d6953047001abb3c9eae3a74a1abb7273cfe8')
