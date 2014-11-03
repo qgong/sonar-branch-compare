@@ -28,9 +28,10 @@ class BranchComparisonController < ApplicationController
   # params['base_version']    optional, version of the base project
   # params['target_version']  optional, version of the target project
   def result
+    begin
+
     base_project_id = params[:id]
     target_project_id = params['target']
-    format = params['format']
     # find base and target project
     @base_project = Project.by_key(base_project_id)
     @target_project = Project.by_key(target_project_id)
@@ -50,15 +51,25 @@ class BranchComparisonController < ApplicationController
     @base_version = params['base_version'] ? params['base_version'] : @base_version_list[0]
     unless @base_version_list.include?(@base_version)
       render :text => "Version not found: base #{@base_version}"
+      return
     end
     @target_version_list = self.get_project_versions(@target_project.id)
     @target_version = params['target_version'] ? params['target_version'] : @target_version_list[0]
     unless @target_version_list.include?(@target_version)
       render :text => "Version not found: target: #{@target_version}"
+      return
     end
     # measure data
     base_snapshot = self.get_latest_snapshot(@base_project.id, @base_version)
     target_snapshot = get_latest_snapshot(@target_project.id, @target_version)
     @measure_data = self.get_measure_data(base_snapshot, target_snapshot)
+    if params['format'] == 'json'
+      render :json => @measure_data
+      return
+    end
+
+    rescue => e
+      render :text => e
+    end
   end
 end
