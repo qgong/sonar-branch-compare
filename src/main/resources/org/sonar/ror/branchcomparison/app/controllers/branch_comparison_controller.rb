@@ -1,6 +1,4 @@
 #!/usr/bin/env ruby 
-FILE_DIR = File::expand_path(File::dirname(__FILE__))
-require "#{FILE_DIR}/../../lib/gerrit.rb"
 require 'json'
 require 'set'
 require 'net/smtp'
@@ -28,8 +26,6 @@ class BranchComparisonController < ApplicationController
   # params['base_version']    optional, version of the base project
   # params['target_version']  optional, version of the target project
   def result
-    begin
-
     base_project_id = params[:id]
     target_project_id = params['target']
     # find base and target project
@@ -66,10 +62,6 @@ class BranchComparisonController < ApplicationController
     if params['format'] == 'json'
       render :json => @measure_data
       return
-    end
-
-    rescue => e
-      render :text => e
     end
   end
 end

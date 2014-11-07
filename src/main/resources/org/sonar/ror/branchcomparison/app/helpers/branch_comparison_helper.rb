@@ -80,41 +80,6 @@ module BranchComparisonHelper
     return versions
   end
 
-  def get_measure_data(base_project_id, base_project_version, target_project_id, target_project_version)
-    data = {}
-    METRICS.each_pair do |category, array|
-      array.each do |hash|
-        metric = Metric.by_name(hash[:name])
-        base_snapshot = self._get_latest_snapshot(base_project_id, base_project_version)
-        base_project_measure = base_snapshot.measure(metric)
-        target_snapshot = self._get_latest_snapshot(target_project_id, target_project_version)
-        target_project_measure = target_snapshot.measure(metric)
-
-        data[hash[:name]] = {'delta' => nil, 'quality' => nil}
-        if base_project_measure and target_project_measure
-          data[hash[:name]]['base'] = base_project_measure.formatted_value
-          data[hash[:name]]['target'] = target_project_measure.formatted_value
-          if base_project_measure.value.is_a?(Numeric) and target_project_measure.value.is_a?(Numeric)
-            if target_project_measure.value == base_project_measure.value
-              data[hash[:name]]['quality'] = 0
-            else
-              tmp = (target_project_measure.value - base_project_measure.value).round(1)
-              tmp = tmp.to_i if tmp.to_i == tmp
-              data[hash[:name]]['delta'] = tmp > 0 ? "+#{tmp}" : "#{tmp}"
-              data[hash[:name]]['quality'] = (tmp > 0 ? 1 : -1) * hash[:character]
-            end
-          end
-        else
-          data[hash[:name]] = { 'base' => base_project_measure ? base_project_measure.formatted_value : nil,
-                                'target' => target_project_measure ? target_project_measure.formatted_value : nil,
-                                'delta' => nil,
-                                'quality' => nil}
-        end
-      end
-    end
-    return data
-  end
-
   def get_measure_data(base_snapshot, target_snapshot)
     data = {}
     METRICS.each_pair do |category, array|
@@ -123,7 +88,7 @@ module BranchComparisonHelper
         base_project_measure = base_snapshot.measure(metric)
         target_project_measure = target_snapshot.measure(metric)
 
-        data[hash[:name]] = {'delta' => nil, 'quality' => nil}
+        data[hash[:name]] = {'delta' => nil, 'quality' => nil, 'short_name' => metric.short_name}
         if base_project_measure and target_project_measure
           data[hash[:name]]['base'] = base_project_measure.formatted_value
           data[hash[:name]]['target'] = target_project_measure.formatted_value
@@ -142,7 +107,8 @@ module BranchComparisonHelper
           data[hash[:name]] = { 'base' => base_project_measure ? base_project_measure.formatted_value : nil,
                                 'target' => target_project_measure ? target_project_measure.formatted_value : nil,
                                 'delta' => nil,
-                                'quality' => nil}
+                                'quality' => 0,
+                                'short_name' => metric.short_name}
         end
       end
     end
