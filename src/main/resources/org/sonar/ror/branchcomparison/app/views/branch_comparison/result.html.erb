@@ -16,10 +16,14 @@
       color: #FFFFFF;
       background-color: #FF3300;
     }
-    .highlight-red a:link {color: #0033FF}      /* unvisited link */
-    .highlight-red a:visited {color: #0033FF}  /* visited link */
-    .highlight-red a:hover {color: #0033FF}  /* mouse over link */
-    .highlight-red a:active {color: #0033FF}  /* selected link */ 
+    .highlight-red a:link {color: #0000FF}      /* unvisited link */
+    .highlight-red a:visited {color: #0000FF}  /* visited link */
+    .highlight-red a:hover {color: #0000FF}  /* mouse over link */
+    .highlight-red a:active {color: #0000FF}  /* selected link */ 
+    .comparison-table {font-family: "Lucida Console"}
+    .branch-name {
+      background-color: #D3D3D3;
+    }
   </style>
 <% end %>
 
@@ -34,7 +38,7 @@
   <nav class="navbar navbar-default" role="navigation">
     <div class="container-fluid">
       <div class="navbar-header">
-        <a class="navbar-brand" href="#">Comparison</a>
+        <a class="navbar-brand" href="#"><%= @base_project.name(true).sub(@base_project.branch, '') %></a>
       </div>
       <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
         <% [[@base_project, @base_version, @base_version_list, 'base', 'left'],
@@ -42,7 +46,7 @@
           <ul class="nav navbar-nav navbar-<%= side %>">
             <li class="active">
               <a href="/dashboard/index/<%= project.key %>">
-                <%= project.name(true) %> <span class="label label-info"><%= branch.capitalize %></span>
+                <%= project.branch %> <span class="label label-info"><%= branch.capitalize %></span>
               </a>
             </li>
             <li class="dropdown">
@@ -78,9 +82,9 @@
         <% col.each do |category| %>
           <div id="<%= category %>-panel" class="panel panel-primary">
             <div class="panel-heading"><%= category.capitalize %></div>
-            <table class="table">
+            <table class="table comparison-table">
               <thead>
-                <tr>
+                <tr class="branch-name">
                   <td>#</td>
                   <td><%= @base_project.branch %></td>
                   <td><%= @target_project.branch %></td>
